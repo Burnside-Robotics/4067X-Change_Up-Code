@@ -17,18 +17,18 @@ controller Controller1;
 
 motor lDrive1(PORT1, ratio18_1);
 motor lDrive2(PORT2,  ratio18_1);
-motor rDrive1(PORT5, ratio18_1, true);
-motor rDrive2(PORT6,  ratio18_1, true);
+motor rDrive1(PORT19, ratio18_1, true);
+motor rDrive2(PORT20,  ratio18_1, true);
 motor_group lDrive(lDrive1, lDrive2);
 motor_group rDrive(rDrive1, rDrive2);
-drivetrain mainDrive(lDrive, rDrive, 320, 320, 130, distanceUnits::cm, 1);
+drivetrain mainDrive(lDrive, rDrive, 319.19, 295, 370, mm, 1);
 
 
 const int MOTOR_ACCEL_LIMIT = 4;
 
-const float USER_DRIVE_SPEED = 80;
-const float AUTON_DRIVE_SPEED = 80;
-const float AUTON_ROTATE_SPEED = 80;
+const float USER_DRIVE_SPEED = 100;
+const float AUTON_DRIVE_SPEED = 60;
+const float AUTON_ROTATE_SPEED = 60;
 
 const int AutonWaitTimeCycle = 100;
 const int CYCLE_SPEED_NORMAL = 10;
@@ -41,7 +41,7 @@ int s_lastR = 0;
 
 void setSideSpeeds(int lSpeed, int rSpeed)
 {
-  if ((lSpeed - s_lastL) > MOTOR_ACCEL_LIMIT)
+ if ((lSpeed - s_lastL) > MOTOR_ACCEL_LIMIT)
   {
     lSpeed = s_lastL + MOTOR_ACCEL_LIMIT;
   }
@@ -59,12 +59,12 @@ void setSideSpeeds(int lSpeed, int rSpeed)
   }
   s_lastL = lSpeed;
   s_lastR = rSpeed;
-  
+
   if (lSpeed == 0)
   {
     lDrive.stop(brakeType::brake);
   }
-  else  
+  else 
   {
     lDrive.spin(directionType::fwd, lSpeed, velocityUnits::pct);
   }
@@ -72,7 +72,7 @@ void setSideSpeeds(int lSpeed, int rSpeed)
   {
     rDrive.stop(brakeType::brake);
   }
-  else
+  else 
   {
     rDrive.spin(directionType::fwd, rSpeed, velocityUnits::pct);
   }
@@ -88,7 +88,7 @@ void forwardCm(int dist, bool waitAtEnd, int extraSpeed, bool async)
 
 void rotate(int degrees, bool waitAtEnd, int extraSpeed, bool async)
 {
-  mainDrive.turnFor(degrees, rotationUnits::deg, AUTON_ROTATE_SPEED + extraSpeed, velocityUnits::pct, !async);
+  mainDrive.turnFor(degrees / 1.75, rotationUnits::deg, AUTON_ROTATE_SPEED + extraSpeed, velocityUnits::pct, !async);
   if(!async)
     setSideSpeeds(0, 0);
   if (waitAtEnd)
@@ -96,7 +96,8 @@ void rotate(int degrees, bool waitAtEnd, int extraSpeed, bool async)
 }
 void RedAuton1() 
 {
-  
+  //forwardCm(20, true, 0, false);
+  rotate(180, false, 0, false);
 }
 void RedAuton2()
 {
@@ -133,8 +134,8 @@ void usercontrol()
 {
   while (1) 
   {
-    setSideSpeeds(Controller1.Axis3.position() * USER_DRIVE_SPEED, Controller1.Axis2.position() * USER_DRIVE_SPEED);
-    wait(CYCLE_SPEED_NORMAL, msec); 
+    setSideSpeeds(Controller1.Axis3.position() * USER_DRIVE_SPEED / 100, Controller1.Axis2.position() * USER_DRIVE_SPEED / 100);
+    task::sleep(CYCLE_SPEED_NORMAL);
   }
 }
 void ScrollAutonUp()

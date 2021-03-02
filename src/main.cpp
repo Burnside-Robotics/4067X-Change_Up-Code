@@ -41,12 +41,12 @@ motor lRoller(PORT10, ratio18_1, true);
 motor rRoller(PORT9, ratio18_1);
 motor_group intakeRollers(lRoller, rRoller);
 
-motor lowerOutakeMotor(PORT11, ratio6_1, true);
-motor upperOutakeMotor(PORT20, ratio6_1);
+motor lowerOutakeMotor(PORT11, ratio6_1);
+motor upperOutakeMotor(PORT20, ratio6_1, true);
 
 //bumper ballBumper(Brain.ThreeWirePort.H);
 
-const int MOTOR_ACCEL_LIMIT = 100;
+const float MOTOR_ACCEL_LIMIT = 2.5;
 
 const float USER_DRIVE_SPEED = 100;
 const float AUTON_DRIVE_SPEED = 45;
@@ -55,7 +55,6 @@ const float AUTON_ROTATE_SPEED = 100;
 const float ROLLER_SPEED = 100;
 const float OUTAKE_SPEED = 100;
 
-const int AutonWaitTimeCycle = 100;
 const int CYCLE_SPEED_NORMAL = 10;
 
 int CURRENT_AUTON = 0; // 0=Red Right, 1=Red Left, 2=Blue Right, 3=Blue Left
@@ -66,7 +65,7 @@ bool antiTipEnabled = true;
 bool autoHopperEnabled = true;
 
 float wheelCircumfrence = 31.9185813596f;
-float turningDiameter = 30;
+float turningDiameter = 33;
 
 void setSideSpeeds(int lSpeed, int rSpeed)
 {
@@ -203,12 +202,15 @@ void DriveDistance(float distance)
 }
 void RotateDegrees(int degrees)
 {
-    intertialSensor.resetHeading();
+    //intertialSensor.resetHeading();
 
-    float maxSpeed = 80;
+    lDrive1.resetPosition();
+    rDrive1.resetPosition();
 
-    const float Kp = 1;
-    const float Ki = 0;
+    float maxSpeed = 100;
+
+    const float Kp = 0.4;
+    const float Ki = 0.05;
     const float Kd = 0;
     const float deadZone = 1;
 
@@ -222,13 +224,12 @@ void RotateDegrees(int degrees)
     float motorSpeed = 0;
 
     float doneTime = 0;
-
+    
+    float turningRatio = turningDiameter / (wheelCircumfrence / 3.1415926535);
+    float target = turningRatio * degrees;
     while (true)
     {
-        float head = intertialSensor.heading();
-        if (head > 180)
-            head -= 360;
-        error = degrees - head;
+        error = target - (lDrive1.rotation(deg) - rDrive1.rotation(deg)) / 2;
         integral += error;
         if (error > 40 || error < -40)
         {
@@ -272,7 +273,7 @@ void RotateDegrees(int degrees)
         {
             Brain.Screen.clearScreen();
             Brain.Screen.setCursor(4, 4);
-            Brain.Screen.print(head);
+            Brain.Screen.print(target);
             Brain.Screen.setCursor(6, 6);
             Brain.Screen.print(error);
         }
@@ -282,12 +283,12 @@ void RotateDegrees(int degrees)
 }
 void ToggleScorer(bool on, bool rev)
 {
-    lowerOutakeMotor.spin(fwd, on ? -OUTAKE_SPEED : 0, pct);
+    lowerOutakeMotor.spin(fwd, on ? OUTAKE_SPEED : 0, pct);
     upperOutakeMotor.spin(fwd, on ? rev ? OUTAKE_SPEED : -OUTAKE_SPEED : 0, pct);
 }
 void ToggleBackOutake(bool on)
 {
-    lowerOutakeMotor.spin(fwd, on ? -OUTAKE_SPEED : 0, pct);
+    lowerOutakeMotor.spin(fwd, on ? OUTAKE_SPEED : 0, pct);
     upperOutakeMotor.spin(fwd, on ? OUTAKE_SPEED : 0, pct);
 }
 void ToggleIntakeRoller(bool on, bool rev)
@@ -297,72 +298,61 @@ void ToggleIntakeRoller(bool on, bool rev)
 void RightCorner()
 {
     upperOutakeMotor.spinFor(fwd, 90, deg, 100, velocityUnits::pct);
-    //mainDrive.driveFor(fwd, -41, distanceUnits::cm);
     DriveDistance(-47);
-    //mainDrive.turnFor(-23, deg);
-    RotateDegrees(-46);
+    RotateDegrees(-56);
     ToggleIntakeRoller(true, false);
-    //mainDrive.driveFor(fwd, 50, distanceUnits::cm);
     DriveDistance(59);
     ToggleScorer(true, false);
     WaitForBumper(3, 4000);
     ToggleIntakeRoller(false, false);
     WaitForBumper(1, 1000);
     ToggleScorer(false, false);
-    //mainDrive.driveFor(fwd, -50, distanceUnits::cm);
     DriveDistance(-50);
 }
 void RightCornerAndCenter()
 {
     RightCorner();
-
     ToggleIntakeRoller(true, false);
     ToggleScorer(true, false);
-    //mainDrive.turnFor(64, deg);
-    RotateDegrees(135);
-    //mainDrive.driveFor(fwd, 100, distanceUnits::cm);
+    RotateDegrees(145);
     DriveDistance(106);
     ToggleScorer(false, false);
-    //mainDrive.turnFor(-43, deg);
-    RotateDegrees(-90);
-    //mainDrive.driveFor(fwd, 25, distanceUnits::cm);
-    DriveDistance(16);
+    RotateDegrees(-97);
+    DriveDistance(25);
     ToggleScorer(true, false);
     wait(1.5, sec);
     ToggleIntakeRoller(false, false);
-    //mainDrive.driveFor(fwd, -18.5, distanceUnits::cm);
     DriveDistance(-18.5);
     ToggleScorer(false, false);
 }
 void LeftCorner()
 {
-    upperOutakeMotor.spinFor(fwd, 90, deg, 100, velocityUnits::pct);
-    mainDrive.driveFor(fwd, -41, distanceUnits::cm);
-    mainDrive.turnFor(24, deg);
+     upperOutakeMotor.spinFor(fwd, 90, deg, 100, velocityUnits::pct);
+    DriveDistance(-47);
+    RotateDegrees(56);
     ToggleIntakeRoller(true, false);
-    mainDrive.driveFor(fwd, 50, distanceUnits::cm);
+    DriveDistance(59);
     ToggleScorer(true, false);
     WaitForBumper(3, 4000);
     ToggleIntakeRoller(false, false);
-    WaitForBumper(1, 2000);
+    WaitForBumper(1, 1000);
     ToggleScorer(false, false);
-    mainDrive.driveFor(fwd, -50, distanceUnits::cm);
+    DriveDistance(-50);
 }
 void LeftCornerAndCenter()
 {
     LeftCorner();
-
     ToggleIntakeRoller(true, false);
     ToggleScorer(true, false);
-    mainDrive.turnFor(-67.5, deg);
-    mainDrive.driveFor(fwd, 100, distanceUnits::cm);
+    RotateDegrees(-145);
+    DriveDistance(106);
     ToggleScorer(false, false);
-    mainDrive.turnFor(-2.5, deg);
-    mainDrive.driveFor(fwd, 25, distanceUnits::cm);
+    RotateDegrees(97);
+    DriveDistance(25);
     ToggleScorer(true, false);
     wait(1.5, sec);
     ToggleIntakeRoller(false, false);
-    mainDrive.driveFor(fwd, -18.5, distanceUnits::cm);
+    DriveDistance(-18.5);
     ToggleScorer(false, false);
 }
 bool DrawButton(int xPos, int yPos, int width, int height, color Color)
@@ -461,18 +451,18 @@ void drivercontrol()
                 {
                     if (opticalSensor.color() == color().blue)
                     {
-                        lowerOutakeMotor.spin(fwd, -100, pct);
+                        lowerOutakeMotor.spin(fwd, 100, pct);
                         upperOutakeMotor.spin(fwd, 100, pct);
-                        wait(400, msec);
+                        wait(300, msec);
                     }
                 }
                 else
                 {
                     if (opticalSensor.color() == color().red)
                     {
-                        lowerOutakeMotor.spin(fwd, -100, pct);
+                        lowerOutakeMotor.spin(fwd, 100, pct);
                         upperOutakeMotor.spin(fwd, 100, pct);
-                        wait(400, msec);
+                        wait(300, msec);
                     }
                 }
             }
@@ -502,8 +492,8 @@ void drivercontrol()
         // Set Outake Motor speeds
         lowerOutakeMotor.spin(fwd,
                               Controller1.ButtonL2.pressing()
-                                  ? -OUTAKE_SPEED / 3
-                              : Controller1.ButtonL1.pressing() ? OUTAKE_SPEED / 3
+                                  ? OUTAKE_SPEED / 3
+                              : Controller1.ButtonL1.pressing() ? -OUTAKE_SPEED / 3
                                                                 : 0,
                               pct);
         //Manual Back Outake
@@ -530,7 +520,6 @@ void drivercontrol()
 }
 void autonomous()
 {
-    wait(3, sec);
     switch (CURRENT_AUTON)
     {
     case 0:

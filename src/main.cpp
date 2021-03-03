@@ -113,6 +113,11 @@ void WaitForBumper(int amount, int maxTimeMsec)
             break;
     }
 }
+
+float clip(float n, float lower, float upper) 
+{
+  return std::max(lower, std::min(n, upper));
+}
 void DriveDistance(float distance)
 {
     lDrive1.resetPosition();
@@ -124,18 +129,17 @@ void DriveDistance(float distance)
     const float Kp = 0.25;
     const float Ki = 0;
     const float Kd = 0;
+    const float Rp = 1;
     const float deadZone = 1;
 
-    float lError = 0;
-    float rError = 0;
-    float lIntegral = 0;
-    float rIntegral = 0;
+    float distPid = 0;
+    float distError = 0;
+    float rotError = 0;
+    float integral = 0;
 
-    float lDerivative = 0;
-    float rDerivative = 0;
+    float derivative = 0;
 
-    float lLastError = 0;
-    float rLastError = 0;
+    float lastError = 0;
 
     float lMotorSpeed = 0;
     float rMotorSpeed = 0;
@@ -143,38 +147,34 @@ void DriveDistance(float distance)
     float doneTime = 0;
     while (true)
     {
-        lError = rotationGoal - lDrive1.rotation(deg);
-        rError = rotationGoal - rDrive1.rotation(deg);
+        distError = rotationGoal - (lDrive1.rotation(deg) + rDrive1.rotation(deg)) / 2;
+        rotError = lDrive1.rotation(deg) - rDrive1.rotation(deg);
 
-        lIntegral += lError;
-        rIntegral += rError;
-        if (lError > 200 || lError < -200)
+        integral += distError;
+
+        if (distError > 200)
         {
-            lIntegral = 0;
+            integral = 0;
         }
-        if (rError > 200 || rError < -200)
+        if (distError > 200)
         {
-            rIntegral = 0;
+            integral = 0;
         }
 
-        lDerivative = lError - lLastError;
-        rDerivative = rError - rLastError;
+        derivative = distError - lastError;
 
-        lLastError = lError;
-        rLastError = rError;
+        lastError = distError;
 
-        lMotorSpeed = Kp * lError + Ki * lIntegral + Kd * lDerivative;
-        rMotorSpeed = Kp * rError + Ki * rIntegral + Kd * rDerivative;
-        if (doneTime < 500)
+        distPid = clip(Kp * distError + Ki * integral + Kd * integral, -100, 100);
+        lMotorSpeed = distPid - rotError * Rp;
+        rMotorSpeed = distPid + rotError * Rp;
+
+        if (doneTime < 500) 
         {
-            if (distance < 0)
-                maxSpeed = -(doneTime / 5);
-            else
-                maxSpeed = doneTime / 5;
+          maxSpeed = doneTime / 5;
         }
         else
         {
-
             if (lMotorSpeed < deadZone && lMotorSpeed > -deadZone && rMotorSpeed < deadZone && rMotorSpeed > -deadZone)
             {
                 rDrive.spin(fwd, 0, pct);
@@ -182,16 +182,9 @@ void DriveDistance(float distance)
                 break;
             }
         }
-        if (distance > 0)
-        {
-            lMotorSpeed = maxSpeed < lMotorSpeed ? maxSpeed : lMotorSpeed;
-            rMotorSpeed = maxSpeed < rMotorSpeed ? maxSpeed : rMotorSpeed;
-        }
-        else
-        {
-            lMotorSpeed = maxSpeed > lMotorSpeed ? maxSpeed : lMotorSpeed;
-            rMotorSpeed = maxSpeed > rMotorSpeed ? maxSpeed : rMotorSpeed;
-        }
+        
+        lMotorSpeed = clip(lMotorSpeed, -maxSpeed, maxSpeed);
+        rMotorSpeed = clip(rMotorSpeed, -maxSpeed, maxSpeed);
 
         lDrive.spin(fwd, lMotorSpeed, pct);
         rDrive.spin(fwd, rMotorSpeed, pct);

@@ -32,8 +32,8 @@ motor rDrive1(PORT3, ratio18_1, true);
 motor rDrive2(PORT4, ratio18_1, true);
 motor_group lDrive(lDrive1, lDrive2);
 motor_group rDrive(rDrive1, rDrive2);
-inertial intertialSensor = inertial(PORT16);
-optical opticalSensor = optical(PORT8);
+inertial intertialSensor = inertial(PORT19);
+optical opticalSensor = optical(PORT5);
 
 drivetrain mainDrive(lDrive, rDrive, 319.19, 295, 370, mm, 1);
 
@@ -46,7 +46,7 @@ motor upperOutakeMotor(PORT20, ratio6_1, true);
 
 //bumper ballBumper(Brain.ThreeWirePort.H);
 
-const float MOTOR_ACCEL_LIMIT = 2.5;
+const float MOTOR_ACCEL_LIMIT = 5;
 
 const float USER_DRIVE_SPEED = 100;
 const float AUTON_DRIVE_SPEED = 45;
